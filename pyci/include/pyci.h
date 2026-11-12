@@ -123,7 +123,11 @@ typedef std::pair<ulong, ulong> Hash;
 template<typename T, typename U>
 Hash spookyhash(T length, const U *data) {
     Hash h(0x23a23cf5033c3c81UL, 0xb3816f6a2c68e530UL);
-    SpookyHash::Hash128(reinterpret_cast<const void *>(data), length * sizeof(U), &h.first, &h.second);
+    // ulong (unsigned long) and uint64 (uint64_t) are both 64-bit, but on macOS uint64_t is
+    // unsigned long long, a distinct type: cast explicitly so that it compiles everywhere.
+    static_assert(sizeof(ulong) == sizeof(uint64), "ulong must be 64-bit");
+    SpookyHash::Hash128(reinterpret_cast<const void *>(data), length * sizeof(U),
+                        reinterpret_cast<uint64 *>(&h.first), reinterpret_cast<uint64 *>(&h.second));
     return h;
 }
 

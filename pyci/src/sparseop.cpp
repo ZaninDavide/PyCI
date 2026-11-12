@@ -212,9 +212,26 @@ void SparseOp::squeeze(void) {
 }
 
 void SparseOp::sort_row(const long idet) {
-    typedef std::sort_with_arg::value_iterator_t<double, long> iter;
-    long start = indptr[idet], end = indptr[idet + 1];
-    std::sort(iter(&data[start], &indices[start]), iter(&data[end], &indices[end]));
+    // Sort the column indices of row ``idet`` in ascending order, permuting the data accordingly.
+    // Portable replacement for the std::sort_with_arg proxy iterator, which does not compile with
+    // libc++ (macOS): copy (index, value) pairs to a reusable buffer, sort them, and write back.
+    // Column indices within a row are unique, so the result is identical to the original.
+    const long start = indptr[idet], end = indptr[idet + 1];
+    const long n = end - start;
+    if (n < 2)
+        return;
+    static thread_local std::vector<std::pair<long, double>> row;
+    row.resize(n);
+    for (long k = 0; k < n; ++k)
+        row[k] = std::make_pair(indices[start + k], data[start + k]);
+    std::sort(row.begin(), row.end(),
+              [](const std::pair<long, double> &a, const std::pair<long, double> &b) {
+                  return a.first < b.first;
+              });
+    for (long k = 0; k < n; ++k) {
+        indices[start + k] = row[k].first;
+        data[start + k] = row[k].second;
+    }
 }
 
 void SparseOp::add_row(const SQuantOp &ham, const DOCIWfn &wfn, const long idet, ulong *det, long *occs,
