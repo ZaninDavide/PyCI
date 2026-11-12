@@ -1087,6 +1087,12 @@ sparse_op.def("data", &SparseOp::py_data, "Return CSR matrix data vector", py::k
 sparse_op.def("indices", &SparseOp::py_indices, "Return CSR matrix indices vector", py::keep_alive<0, 1>());
 sparse_op.def("indptr", &SparseOp::py_indptr, "Return CSR matrix index pointer vector", py::keep_alive<0, 1>());
 
+sparse_op.def("__copy__", [](const SparseOp &self) { return SparseOp(self); },
+              "Return a copy of the sparse matrix operator.");
+
+sparse_op.def("__deepcopy__", [](const SparseOp &self, py::dict) { return SparseOp(self); },
+              "Return a deep copy of the sparse matrix operator.", py::arg("memo"));
+
 /*
 Section: Free functions
 */
